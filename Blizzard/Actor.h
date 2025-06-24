@@ -55,10 +55,142 @@ namespace ActorNamespace
 
 	void Initialize()
 	{
-		SpawnActorInternal = decltype(SpawnActorInternal)(Globals::GetAddress(0x20B1240));
-		InternalTryActivateAbility = decltype(InternalTryActivateAbility)(Globals::GetAddress(0x4DD2F0));
+		try
+		{
+			Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "=== Starting Actor Namespace Initialization ===");
 
-		auto NewCheatManager = SDK::UGameplayStatics::GetDefaultObj()->SpawnObject(SDK::UCheatManager::StaticClass(), Globals::GetEngine()->GameInstance->LocalPlayers[0]->PlayerController);
-		Globals::GetEngine()->GameInstance->LocalPlayers[0]->PlayerController->CheatManager = (SDK::UCheatManager*)(NewCheatManager);
+			// Initialize SpawnActorInternal
+			try
+			{
+				Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "Initializing SpawnActorInternal...");
+				auto spawnActorAddress = Globals::GetAddress(0x20B1240);
+				if (spawnActorAddress == 0)
+				{
+					Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "SpawnActorInternal address resolution failed");
+					return;
+				}
+				Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "SpawnActorInternal address: 0x%llX", spawnActorAddress);
+
+				SpawnActorInternal = decltype(SpawnActorInternal)(spawnActorAddress);
+				if (!SpawnActorInternal)
+				{
+					Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "SpawnActorInternal function pointer is null");
+					return;
+				}
+				Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "SpawnActorInternal initialized successfully");
+			}
+			catch (...)
+			{
+				Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Exception during SpawnActorInternal initialization");
+				return;
+			}
+
+			// Initialize InternalTryActivateAbility
+			try
+			{
+				Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "Initializing InternalTryActivateAbility...");
+				auto activateAbilityAddress = Globals::GetAddress(0x4DD2F0);
+				if (activateAbilityAddress == 0)
+				{
+					Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "InternalTryActivateAbility address resolution failed");
+					return;
+				}
+				Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "InternalTryActivateAbility address: 0x%llX", activateAbilityAddress);
+
+				InternalTryActivateAbility = decltype(InternalTryActivateAbility)(activateAbilityAddress);
+				if (!InternalTryActivateAbility)
+				{
+					Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "InternalTryActivateAbility function pointer is null");
+					return;
+				}
+				Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "InternalTryActivateAbility initialized successfully");
+			}
+			catch (...)
+			{
+				Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Exception during InternalTryActivateAbility initialization");
+				return;
+			}
+
+			// Create CheatManager
+			try
+			{
+				Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "Setting up CheatManager...");
+
+				auto engine = Globals::GetEngine();
+				if (!engine)
+				{
+					Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to get engine for CheatManager setup");
+					return;
+				}
+				Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "Engine retrieved successfully");
+
+				if (!engine->GameInstance)
+				{
+					Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "GameInstance is null");
+					return;
+				}
+				Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "GameInstance validated");
+
+				if (!engine->GameInstance->LocalPlayers.IsValid() || engine->GameInstance->LocalPlayers.Num() == 0)
+				{
+					Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "LocalPlayers array is invalid or empty");
+					return;
+				}
+				Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "LocalPlayers array validated, count: %d", engine->GameInstance->LocalPlayers.Num());
+
+				auto localPlayer = engine->GameInstance->LocalPlayers[0];
+				if (!localPlayer)
+				{
+					Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "First LocalPlayer is null");
+					return;
+				}
+				Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "First LocalPlayer validated");
+
+				auto playerController = localPlayer->PlayerController;
+				if (!playerController)
+				{
+					Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "PlayerController is null");
+					return;
+				}
+				Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "PlayerController validated");
+
+				Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "Spawning CheatManager object...");
+				auto gameplayStatics = SDK::UGameplayStatics::GetDefaultObj();
+				if (!gameplayStatics)
+				{
+					Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to get UGameplayStatics default object");
+					return;
+				}
+
+				auto cheatManagerClass = SDK::UCheatManager::StaticClass();
+				if (!cheatManagerClass)
+				{
+					Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to get UCheatManager static class");
+					return;
+				}
+
+				auto NewCheatManager = gameplayStatics->SpawnObject(cheatManagerClass, playerController);
+				if (!NewCheatManager)
+				{
+					Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to spawn CheatManager object");
+					return;
+				}
+				Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "CheatManager object spawned successfully");
+
+				playerController->CheatManager = (SDK::UCheatManager*)(NewCheatManager);
+				Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "CheatManager assigned to PlayerController successfully");
+			}
+			catch (...)
+			{
+				Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Exception during CheatManager setup");
+				return;
+			}
+
+			Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "=== ACTOR NAMESPACE INITIALIZATION COMPLETED SUCCESSFULLY ===");
+		}
+		catch (...)
+		{
+			Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Critical exception in ActorNamespace::Initialize");
+		}
 	}
 }

@@ -239,8 +239,6 @@ namespace Beacons
         try
         {
             Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "Starting beacon initialization...");
-
-            // Initialize replication offsets first
             try
             {
                 Replication::InitOffsets();
@@ -252,7 +250,6 @@ namespace Beacons
                 return;
             }
 
-            // Install hooks with error checking
             try
             {
                 auto result1 = Globals::CreateHook(Globals::GetAddress(0x317BF0), AOnlineBeaconHost_NotifyControlMessageHook, nullptr);
@@ -276,7 +273,7 @@ namespace Beacons
                     return;
                 }
 
-                auto result4 = Globals::CreateHook(Globals::GetAddress(0xC98310), KickPatch, nullptr);
+                auto result4 = Globals::CreateHook(Globals::GetAddress(0x2000E70), KickPatch, nullptr);
                 if (result4 != MH_OK)
                 {
                     Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to hook KickPatch: %d", result4);
@@ -372,7 +369,7 @@ namespace Beacons
 
             try
             {
-                auto result5 = Globals::CreateHook(Globals::GetAddress(0x2118B40), TickFlushHook, (void**)(&TickFlush));
+                auto result5 = Globals::CreateHook(Globals::GetAddress(0x2118b40), TickFlushHook, (void**)(&TickFlush));
                 if (result5 != MH_OK)
                 {
                     Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to hook TickFlush: %d", result5);
