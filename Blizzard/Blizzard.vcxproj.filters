@@ -48,6 +48,9 @@
     <ClInclude Include="Replication.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="World.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -80,5 +83,8 @@
     <ClCompile Include="..\..\..\Dumper-7\4.20.0-3889387+++Fortnite+Release-2.5-FortniteGame\CppSDK\SDK\Basic.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

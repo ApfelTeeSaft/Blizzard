@@ -4,11 +4,13 @@
 #include "Types.h"
 #include "Actor.h"
 #include "ProcessEvent.h"
+#include "World.h"
 
 DWORD WINAPI Main(LPVOID)
 {
     Logging::Initialize();
     Types::Initialize();
+    World::Initialize();
     ActorNamespace::Initialize();
     ProcessEventNamespace::Initialize();
     return 0;

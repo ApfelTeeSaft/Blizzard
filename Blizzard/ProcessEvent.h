@@ -413,8 +413,6 @@ namespace ProcessEventNamespace
 
 	void Initialize()
 	{
-		auto PC = reinterpret_cast<SDK::AFortPlayerController*>(Globals::GetEngine()->GameInstance->LocalPlayers[0]->PlayerController);
-		PC->SwitchLevel(L"Athena_Terrain");
 		Globals::CreateHook(Globals::GetAddress(SDK::Offsets::ProcessEvent), ProcessEventHook, (void**)&ProcessEvent);
 		Globals::CreateHook(Globals::GetAddress(0x236E670), hkCollectGarbage);
 		Globals::CreateHook(Globals::GetAddress(0x9b0d40), hkReadyToStartMatch, (void**)(&oReadyToStartMatch));

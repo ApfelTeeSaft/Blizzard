@@ -10,12 +10,36 @@ namespace Globals
 
 	SDK::UFortEngine* GetEngine()
 	{
-		SDK::UFortEngine* FortEngine = SDK::UObject::FindObject<SDK::UFortEngine>("FortEngine Transient.FortEngine_0");
-		if (!FortEngine)
+		try
 		{
-			Logging::Log(ELogEvent::Error, ELogType::Athena, "Failed to find FortEngine object");
+			if (!SDK::UObject::GObjects)
+			{
+				Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "GObjects is null - SDK not properly initialized");
+				return nullptr;
+			}
+
+			SDK::UFortEngine* FortEngine = SDK::UObject::FindObject<SDK::UFortEngine>("FortEngine Transient.FortEngine_0");
+
+			if (!FortEngine)
+			{
+				Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to find FortEngine object - game may not be fully loaded");
+				return nullptr;
+			}
+
+			if (IsBadReadPtr(FortEngine, sizeof(void*)))
+			{
+				Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "FortEngine pointer is invalid/corrupted");
+				return nullptr;
+			}
+
+			Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "Successfully retrieved FortEngine at 0x%p", FortEngine);
+			return FortEngine;
 		}
-		return FortEngine;
+		catch (...)
+		{
+			Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Exception occurred while getting FortEngine");
+			return nullptr;
+		}
 	}
 
 	SDK::AFortPlayerController* GetPlayerController()
@@ -41,8 +65,47 @@ namespace Globals
 
 	SDK::UWorld* GetWorld()
 	{
-		SDK::UWorld* World = GetEngine()->GameViewport->World;
-		return World;
+		try
+		{
+			auto engine = GetEngine();
+			if (!engine)
+			{
+				Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Engine is null in GetWorld()");
+				return nullptr;
+			}
+
+			if (!engine->GameViewport)
+			{
+				Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "GameViewport is null - game viewport not initialized");
+				return nullptr;
+			}
+
+			if (IsBadReadPtr(engine->GameViewport, sizeof(void*)))
+			{
+				Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "GameViewport pointer is invalid/corrupted");
+				return nullptr;
+			}
+
+			auto world = engine->GameViewport->World;
+			if (!world)
+			{
+				Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "World is null - world not loaded");
+				return nullptr;
+			}
+
+			if (IsBadReadPtr(world, sizeof(void*)))
+			{
+				Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "World pointer is invalid/corrupted");
+				return nullptr;
+			}
+
+			return world;
+		}
+		catch (...)
+		{
+			Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Exception occurred while getting World");
+			return nullptr;
+		}
 	}
 
 	uintptr_t GetBaseAddress()
