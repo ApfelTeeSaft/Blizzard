@@ -10,7 +10,7 @@ namespace Globals
 
 	SDK::UFortEngine* GetEngine()
 	{
-		SDK::UFortEngine* FortEngine = SDK::UObject::FindObject<UFortEngine>("FortEngine Transient.FortEngine_0");
+		SDK::UFortEngine* FortEngine = SDK::UObject::FindObject<SDK::UFortEngine>("FortEngine Transient.FortEngine_0");
 		if (!FortEngine)
 		{
 			Logging::Log(ELogEvent::Error, ELogType::Athena, "Failed to find FortEngine object");

@@ -11,7 +11,6 @@ namespace ProcessEventNamespace
 	LPVOID(*ProcessEvent)(void*, void*, void*);
 	LPVOID ProcessEventHook(SDK::UObject* pObject, SDK::UFunction* pFunction, LPVOID pParams)
 	{
-		Logging::Log(ELogEvent::Info, ELogType::Athena, "ProcessEvent Called");
 		auto ObjName = pObject->GetName();
 		auto FuncName = pFunction->GetName();
 
@@ -210,6 +209,6 @@ namespace ProcessEventNamespace
 	{
 		auto PC = reinterpret_cast<SDK::AFortPlayerController*>(Globals::GetEngine()->GameInstance->LocalPlayers[0]->PlayerController);
 		PC->SwitchLevel(L"Athena_Terrain");
-		Globals::CreateHook(Globals::GetAddress(Offsets::ProcessEvent), ProcessEventHook, (void**)&ProcessEvent);
+		Globals::CreateHook(Globals::GetAddress(SDK::Offsets::ProcessEvent), ProcessEventHook, (void**)&ProcessEvent);
 	}
 }

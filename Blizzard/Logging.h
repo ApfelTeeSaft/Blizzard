@@ -4,6 +4,8 @@
 #include <Windows.h>
 #include <filesystem>
 #include <iostream>
+#include <io.h>
+#include <fcntl.h>
 
 enum ELogType : uint8_t
 {
@@ -18,18 +20,57 @@ enum ELogType : uint8_t
     Athena = 8,
     ProcessEvent = 9,
     Quests = 10,
-    Bot = 11
+    Bot = 11,
+    GameOutput = 12
 };
 
 enum ELogEvent : uint8_t
 {
     Warning = 1,
     Info = 2,
-    Error = 3
+    Error = 3,
+    GameOut = 4
 };
 
 namespace Logging
 {
+    static std::streambuf* originalCoutBuf = nullptr;
+    static std::streambuf* originalCerrBuf = nullptr;
+    static std::ofstream logFileStream;
+    static bool isRedirecting = false;
+
+    class TeeBuf : public std::streambuf {
+    private:
+        std::streambuf* sb1;
+        std::streambuf* sb2;
+        std::string prefix;
+
+    public:
+        TeeBuf(std::streambuf* sb1, std::streambuf* sb2, const std::string& prefix = "")
+            : sb1(sb1), sb2(sb2), prefix(prefix) {
+        }
+
+    protected:
+        virtual int overflow(int c) override {
+            if (c == EOF) {
+                return !EOF;
+            }
+            else {
+                int const r1 = sb1->sputc(c);
+                int const r2 = sb2->sputc(c);
+                return (r1 == EOF || r2 == EOF) ? EOF : c;
+            }
+        }
+
+        virtual int sync() override {
+            int const r1 = sb1->pubsync();
+            int const r2 = sb2->pubsync();
+            return (r1 == 0 && r2 == 0) ? 0 : -1;
+        }
+    };
+
+    static TeeBuf* coutTeeBuf = nullptr;
+    static TeeBuf* cerrTeeBuf = nullptr;
 
     std::string LogTypeToString(ELogType LogType = ELogType::Invalid)
     {
@@ -46,6 +87,7 @@ namespace Logging
         case ELogType::ProcessEvent: return "LogProcessEvent";
         case ELogType::Quests: return "LogQuests";
         case ELogType::Bot: return "LogAI";
+        case ELogType::GameOutput: return "GameOutput";
         default: return "Log";
         }
     }
@@ -57,7 +99,74 @@ namespace Logging
         case ELogEvent::Warning: return "Warning";
         case ELogEvent::Info: return "Info";
         case ELogEvent::Error: return "Error";
+        case ELogEvent::GameOut: return "Game";
         default: return "Unknown";
+        }
+    }
+
+    void WriteToLogFile(const std::string& message)
+    {
+        try
+        {
+            if (logFileStream.is_open())
+            {
+                logFileStream << message;
+                logFileStream.flush();
+            }
+        }
+        catch (const std::exception&)
+        {
+        }
+    }
+
+    void SetupOutputRedirection()
+    {
+        try
+        {
+            if (!isRedirecting && logFileStream.is_open())
+            {
+                originalCoutBuf = std::cout.rdbuf();
+                originalCerrBuf = std::cerr.rdbuf();
+
+                coutTeeBuf = new TeeBuf(originalCoutBuf, logFileStream.rdbuf(), "FortniteOutput: Game: ");
+                cerrTeeBuf = new TeeBuf(originalCerrBuf, logFileStream.rdbuf(), "FortniteOutput: Error: ");
+
+                std::cout.rdbuf(coutTeeBuf);
+                std::cerr.rdbuf(cerrTeeBuf);
+
+                isRedirecting = true;
+            }
+        }
+        catch (...)
+        {
+        }
+    }
+
+    void RestoreOutputRedirection()
+    {
+        try
+        {
+            if (isRedirecting)
+            {
+                if (originalCoutBuf)
+                    std::cout.rdbuf(originalCoutBuf);
+                if (originalCerrBuf)
+                    std::cerr.rdbuf(originalCerrBuf);
+
+                if (coutTeeBuf) {
+                    delete coutTeeBuf;
+                    coutTeeBuf = nullptr;
+                }
+                if (cerrTeeBuf) {
+                    delete cerrTeeBuf;
+                    cerrTeeBuf = nullptr;
+                }
+
+                isRedirecting = false;
+            }
+        }
+        catch (...)
+        {
         }
     }
 
@@ -75,35 +184,43 @@ namespace Logging
         printf("%s", FullMessage.c_str());
         fflush(stdout);
 
+        WriteToLogFile(FullMessage);
+    }
+
+    void SafeLog(const std::string& message)
+    {
         try
         {
-            std::ofstream logFile("Athena.log", std::ios::app);
-            if (logFile.is_open())
+            printf("%s", message.c_str());
+            fflush(stdout);
+
+            if (logFileStream.is_open())
             {
-                logFile << FullMessage;
-                logFile.flush();
-                logFile.close();
-            }
-            else
-            {
-                std::string currentPath = std::filesystem::current_path().string();
-                std::string fullPath = currentPath + "\\Athena.log";
-                std::ofstream logFileAbs(fullPath, std::ios::app);
-                if (logFileAbs.is_open())
-                {
-                    logFileAbs << FullMessage;
-                    logFileAbs.flush();
-                    logFileAbs.close();
-                }
-                else
-                {
-                    printf("ERROR: Could not open log file! Current dir: %s\n", currentPath.c_str());
-                }
+                logFileStream << message;
+                logFileStream.flush();
             }
         }
-        catch (const std::exception& e)
+        catch (...)
         {
-            printf("ERROR: Exception while logging: %s\n", e.what());
+        }
+    }
+
+    void SafeLog(ELogEvent LogEvent, ELogType LogType, const char* Format, ...)
+    {
+        try
+        {
+            std::string Prefix = LogTypeToString(LogType) + ": " + LogEventToString(LogEvent) + ": ";
+            char Buffer[1024];
+            va_list _ArgList;
+            va_start(_ArgList, Format);
+            vsnprintf(Buffer, sizeof(Buffer), Format, _ArgList);
+            va_end(_ArgList);
+
+            std::string FullMessage = Prefix + Buffer + "\n";
+            SafeLog(FullMessage);
+        }
+        catch (...)
+        {
         }
     }
 
@@ -112,6 +229,7 @@ namespace Logging
         AllocConsole();
         FILE* File;
         freopen_s(&File, "CONOUT$", "w+", stdout);
+        freopen_s(&File, "CONOUT$", "w+", stderr);
         SetConsoleTitleA("Blizzard - 2.5.0");
 
         try
@@ -119,11 +237,13 @@ namespace Logging
             if (std::filesystem::exists("Athena.log"))
                 std::filesystem::remove("Athena.log");
 
-            std::ofstream testFile("Athena.log", std::ios::app);
-            if (testFile.is_open())
+            logFileStream.open("Athena.log", std::ios::app);
+            if (logFileStream.is_open())
             {
-                testFile << "=== Log Started ===\n";
-                testFile.close();
+                logFileStream << "=== Log Started ===\n";
+                logFileStream.flush();
+
+                SetupOutputRedirection();
             }
             else
             {
@@ -136,5 +256,24 @@ namespace Logging
         }
 
         Logging::Log(ELogEvent::Info, ELogType::Athena, "Pieced together by @ApfelTeeSaft");
+        Logging::Log(ELogEvent::Info, ELogType::Athena, "Output redirection enabled - game output will be captured");
+    }
+
+    void Cleanup()
+    {
+        try
+        {
+            RestoreOutputRedirection();
+
+            if (logFileStream.is_open())
+            {
+                logFileStream << "=== Log Ended ===\n";
+                logFileStream.flush();
+                logFileStream.close();
+            }
+        }
+        catch (...)
+        {
+        }
     }
 }

@@ -140,6 +140,11 @@ namespace Types
     {
         Logging::Log(ELogEvent::Info, ELogType::Athena, "Starting SDK types initialization...");
 
+        if (MH_Initialize() != MH_OK) {
+            Logging::Log(ELogEvent::Error, ELogType::Hook, "Failed to initialize MinHook");
+            return 1;
+        }
+
         uintptr_t baseAddr = reinterpret_cast<uintptr_t>(GetModuleHandle(nullptr));
         Logging::Log(ELogEvent::Info, ELogType::Athena, "Game base address: 0x%llX", baseAddr);
 
