@@ -84,80 +84,321 @@ namespace Beacons
 
 	inline SDK::APlayerController* SpawnPlayActorHook(SDK::UWorld*, SDK::UNetConnection* Connection, SDK::ENetRole NetRole, SDK::FURL a4, void* a5, SDK::FString& Src, uint8_t a7)
 	{
-		auto PlayerController = (SDK::AFortPlayerControllerAthena*)SpawnPlayActor(Globals::GetWorld(), Connection, NetRole, a4, a5, Src, a7);
-		Connection->PlayerController = PlayerController;
-		PlayerController->NetConnection = Connection;
-		Connection->OwningActor = PlayerController;
-
-		auto Pawn = (SDK::APlayerPawn_Athena_C*)(ActorNamespace::SpawnActor(SDK::APlayerPawn_Athena_C::StaticClass(), GetPlayerStart(), {}));
-		Pawn->SetOwner(PlayerController);
-		PlayerController->Possess(Pawn);
-
-		PlayerController->ClientForceProfileQuery();
-		Pawn->OnRep_CustomizationLoadout();
-
-		Pawn->ServerChoosePart(SDK::EFortCustomPartType::Head, SDK::UObject::FindObject<SDK::UCustomCharacterPart>("CustomCharacterPart F_Med_Head1.F_Med_Head1"));
-		Pawn->ServerChoosePart(SDK::EFortCustomPartType::Body, SDK::UObject::FindObject<SDK::UCustomCharacterPart>("CustomCharacterPart F_Med_Soldier_01.F_Med_Soldier_01"));
-		((SDK::AFortPlayerStateAthena*)Pawn->PlayerState)->OnRep_CharacterParts();
-
-		Pawn->CharacterMovement->bReplicates = true;
-		Pawn->SetReplicateMovement(true);
-		Pawn->OnRep_ReplicatedBasedMovement();
-
-		Pawn->OnRep_ReplicatedMovement();
-
-		PlayerController->bHasServerFinishedLoading = true;
-		PlayerController->OnRep_bHasServerFinishedLoading();
-
-		auto PlayerState = (SDK::AFortPlayerStateAthena*)(PlayerController->PlayerState);
-
-		PlayerState->TeamIndex = SDK::EFortTeam::HumanPvP_Team69;
-		PlayerState->SquadId = 70;
-		PlayerState->OnRep_SquadId();
-		PlayerState->OnRep_PlayerTeam();
-
-		PlayerState->bHasFinishedLoading = true;
-		PlayerState->bHasStartedPlaying = true;
-		PlayerState->OnRep_bHasStartedPlaying();
-		PlayerState->OnRep_CharacterParts();
-
-		auto NewCheatManager = (SDK::UFortCheatManager*)(SDK::UGameplayStatics::GetDefaultObj()->SpawnObject(SDK::UFortCheatManager::StaticClass(), PlayerController));
-		PlayerController->CheatManager = NewCheatManager;
-
-		InventoryNamespace::SetupInventory(PlayerController);
-		InventoryNamespace::UpdateInventory(PlayerController);
-
-		PlayerState->OnRep_HeroType();
-
-		PlayerController->ClientRestart(Pawn);
-
-		return PlayerController;
-	}
-
-	inline void InitHooks()
-	{
-		Replication::InitOffsets();
-
-		Globals::CreateHook(Globals::GetAddress(0x317BF0), AOnlineBeaconHost_NotifyControlMessageHook, nullptr);
-		Globals::CreateHook(Globals::GetAddress(0x23BCB00), WelcomePlayerHook, (void**)(&WelcomePlayer));
-		Globals::CreateHook(Globals::GetAddress(0x20B2CA0), SpawnPlayActorHook, (void**)(&SpawnPlayActor));
-		Globals::CreateHook(Globals::GetAddress(0xC98310), KickPatch, nullptr);
-
-
-		Beacon = (SDK::AOnlineBeaconHost*)(ActorNamespace::SpawnActor(SDK::AOnlineBeaconHost::StaticClass(), {}, {}));
-		Beacon->ListenPort = 7777;
-		if (InitHost(Beacon))
+		try
 		{
-			Beacon->NetDriver->World = Globals::GetWorld();
-			Globals::GetWorld()->LevelCollections[0].NetDriver = Beacon->NetDriver;
-			Globals::GetWorld()->LevelCollections[1].NetDriver = Beacon->NetDriver;
+			if (!Connection)
+			{
+				Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "SpawnPlayActorHook: Connection is null");
+				return nullptr;
+			}
 
-			((SDK::AOnlineBeacon*)Beacon)->BeaconState = 0;
+			auto PlayerController = (SDK::AFortPlayerControllerAthena*)SpawnPlayActor(Globals::GetWorld(), Connection, NetRole, a4, a5, Src, a7);
+			if (!PlayerController)
+			{
+				Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "SpawnPlayActorHook: Failed to spawn player controller");
+				return nullptr;
+			}
 
-			Globals::CreateHook(Globals::GetAddress(0x2118B40), TickFlushHook, (void**)(&TickFlush));
-			Globals::CreateHook(Globals::GetAddress(0x21107D0), NotifyActorDestroyedHook, (void**)(&NotifyActorDestroyed));
+			Connection->PlayerController = PlayerController;
+			PlayerController->NetConnection = Connection;
+			Connection->OwningActor = PlayerController;
 
-			Logging::Log(ELogEvent::Info, ELogType::Athena, "Server is now Listening!");
+			auto Pawn = (SDK::APlayerPawn_Athena_C*)(ActorNamespace::SpawnActor(SDK::APlayerPawn_Athena_C::StaticClass(), GetPlayerStart(), {}));
+			if (!Pawn)
+			{
+				Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "SpawnPlayActorHook: Failed to spawn pawn");
+				return PlayerController;
+			}
+
+			Pawn->SetOwner(PlayerController);
+			PlayerController->Possess(Pawn);
+
+			try
+			{
+				PlayerController->ClientForceProfileQuery();
+				Pawn->OnRep_CustomizationLoadout();
+
+				auto HeadPart = SDK::UObject::FindObject<SDK::UCustomCharacterPart>("CustomCharacterPart F_Med_Head1.F_Med_Head1");
+				auto BodyPart = SDK::UObject::FindObject<SDK::UCustomCharacterPart>("CustomCharacterPart F_Med_Soldier_01.F_Med_Soldier_01");
+
+				if (HeadPart)
+					Pawn->ServerChoosePart(SDK::EFortCustomPartType::Head, HeadPart);
+				if (BodyPart)
+					Pawn->ServerChoosePart(SDK::EFortCustomPartType::Body, BodyPart);
+
+				if (Pawn->PlayerState)
+				{
+					((SDK::AFortPlayerStateAthena*)Pawn->PlayerState)->OnRep_CharacterParts();
+				}
+			}
+			catch (...)
+			{
+				Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "SpawnPlayActorHook: Exception during customization setup");
+			}
+
+			try
+			{
+				if (Pawn->CharacterMovement)
+				{
+					Pawn->CharacterMovement->bReplicates = true;
+				}
+				Pawn->SetReplicateMovement(true);
+				Pawn->OnRep_ReplicatedBasedMovement();
+				Pawn->OnRep_ReplicatedMovement();
+			}
+			catch (...)
+			{
+				Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "SpawnPlayActorHook: Exception during movement setup");
+			}
+
+			try
+			{
+				PlayerController->bHasServerFinishedLoading = true;
+				PlayerController->OnRep_bHasServerFinishedLoading();
+			}
+			catch (...)
+			{
+				Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "SpawnPlayActorHook: Exception during loading state setup");
+			}
+
+			try
+			{
+				auto PlayerState = (SDK::AFortPlayerStateAthena*)(PlayerController->PlayerState);
+				if (PlayerState)
+				{
+					PlayerState->TeamIndex = SDK::EFortTeam::HumanPvP_Team1;
+					PlayerState->SquadId = 1;
+					PlayerState->bHasFinishedLoading = true;
+					PlayerState->bHasStartedPlaying = true;
+					PlayerState->OnRep_SquadId();
+					PlayerState->OnRep_PlayerTeam();
+					PlayerState->OnRep_bHasStartedPlaying();
+					PlayerState->OnRep_CharacterParts();
+
+					Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "Player assigned to Team1, Squad1");
+				}
+				else
+				{
+					Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "PlayerState is null during team assignment");
+				}
+			}
+			catch (...)
+			{
+				Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Exception during team/squad assignment");
+			}
+
+			try
+			{
+				auto NewCheatManager = (SDK::UFortCheatManager*)(SDK::UGameplayStatics::GetDefaultObj()->SpawnObject(SDK::UFortCheatManager::StaticClass(), PlayerController));
+				if (NewCheatManager)
+				{
+					PlayerController->CheatManager = NewCheatManager;
+				}
+			}
+			catch (...)
+			{
+				Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "SpawnPlayActorHook: Exception during cheat manager setup");
+			}
+
+			try
+			{
+				InventoryNamespace::SetupInventory(PlayerController);
+				InventoryNamespace::UpdateInventory(PlayerController);
+			}
+			catch (...)
+			{
+				Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "SpawnPlayActorHook: Exception during inventory setup");
+			}
+
+			try
+			{
+				auto PlayerState = (SDK::AFortPlayerStateAthena*)(PlayerController->PlayerState);
+				if (PlayerState)
+				{
+					PlayerState->OnRep_HeroType();
+				}
+				PlayerController->ClientRestart(Pawn);
+			}
+			catch (...)
+			{
+				Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "SpawnPlayActorHook: Exception during final setup");
+			}
+
+			Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "Player spawned successfully");
+			return PlayerController;
+		}
+		catch (...)
+		{
+			Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Critical exception in SpawnPlayActorHook");
+			return nullptr;
 		}
 	}
+
+    inline void InitHooks()
+    {
+        try
+        {
+            Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "Starting beacon initialization...");
+
+            // Initialize replication offsets first
+            try
+            {
+                Replication::InitOffsets();
+                Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "Replication offsets initialized");
+            }
+            catch (...)
+            {
+                Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to initialize replication offsets");
+                return;
+            }
+
+            // Install hooks with error checking
+            try
+            {
+                auto result1 = Globals::CreateHook(Globals::GetAddress(0x317BF0), AOnlineBeaconHost_NotifyControlMessageHook, nullptr);
+                if (result1 != MH_OK)
+                {
+                    Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to hook NotifyControlMessage: %d", result1);
+                    return;
+                }
+
+                auto result2 = Globals::CreateHook(Globals::GetAddress(0x23BCB00), WelcomePlayerHook, (void**)(&WelcomePlayer));
+                if (result2 != MH_OK)
+                {
+                    Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to hook WelcomePlayer: %d", result2);
+                    return;
+                }
+
+                auto result3 = Globals::CreateHook(Globals::GetAddress(0x20B2CA0), SpawnPlayActorHook, (void**)(&SpawnPlayActor));
+                if (result3 != MH_OK)
+                {
+                    Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to hook SpawnPlayActor: %d", result3);
+                    return;
+                }
+
+                auto result4 = Globals::CreateHook(Globals::GetAddress(0xC98310), KickPatch, nullptr);
+                if (result4 != MH_OK)
+                {
+                    Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to hook KickPatch: %d", result4);
+                    return;
+                }
+
+                Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "All hooks installed successfully");
+            }
+            catch (...)
+            {
+                Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Exception during hook installation");
+                return;
+            }
+
+            // Create beacon actor
+            try
+            {
+                auto World = Globals::GetWorld();
+                if (!World)
+                {
+                    Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to get world for beacon creation");
+                    return;
+                }
+
+                Beacon = (SDK::AOnlineBeaconHost*)(ActorNamespace::SpawnActor(SDK::AOnlineBeaconHost::StaticClass(), {}, {}));
+                if (!Beacon)
+                {
+                    Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to spawn beacon actor");
+                    return;
+                }
+
+                Beacon->ListenPort = 7777;
+                Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "Beacon actor created, attempting to initialize host...");
+
+                InitHost = decltype(InitHost)(Globals::GetAddress(0x314ae0));
+                if (!InitHost)
+                {
+                    Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "InitHost function pointer is null");
+                    return;
+                }
+
+                bool hostInitResult = InitHost(Beacon);
+                if (!hostInitResult)
+                {
+                    Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "InitHost returned false");
+                    return;
+                }
+
+                if (!Beacon->NetDriver)
+                {
+                    Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Beacon NetDriver is null after InitHost");
+                    return;
+                }
+
+                Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "Host initialized successfully");
+            }
+            catch (...)
+            {
+                Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Exception during beacon creation");
+                return;
+            }
+
+            try
+            {
+                auto World = Globals::GetWorld();
+                if (!World)
+                {
+                    Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "World is null during NetDriver configuration");
+                    return;
+                }
+
+                Beacon->NetDriver->World = World;
+
+                if (World->LevelCollections.IsValid() && World->LevelCollections.Num() >= 2)
+                {
+                    World->LevelCollections[0].NetDriver = Beacon->NetDriver;
+                    World->LevelCollections[1].NetDriver = Beacon->NetDriver;
+                }
+                else
+                {
+                    Logging::SafeLog(ELogEvent::Warning, ELogType::Athena, "LevelCollections not available or insufficient count");
+                }
+
+                ((SDK::AOnlineBeacon*)Beacon)->BeaconState = 0;
+
+                Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "NetDriver configured successfully");
+            }
+            catch (...)
+            {
+                Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Exception during NetDriver configuration");
+                return;
+            }
+
+            try
+            {
+                auto result5 = Globals::CreateHook(Globals::GetAddress(0x2118B40), TickFlushHook, (void**)(&TickFlush));
+                if (result5 != MH_OK)
+                {
+                    Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to hook TickFlush: %d", result5);
+                    return;
+                }
+
+                auto result6 = Globals::CreateHook(Globals::GetAddress(0x21107D0), NotifyActorDestroyedHook, (void**)(&NotifyActorDestroyed));
+                if (result6 != MH_OK)
+                {
+                    Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to hook NotifyActorDestroyed: %d", result6);
+                    return;
+                }
+
+                Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "Final hooks installed successfully");
+            }
+            catch (...)
+            {
+                Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Exception during final hook installation");
+                return;
+            }
+
+            Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "Server is now Listening!");
+        }
+        catch (...)
+        {
+            Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Critical exception in InitHooks");
+        }
+    }
 }
