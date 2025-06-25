@@ -5,14 +5,24 @@
 #include "Actor.h"
 #include "ProcessEvent.h"
 #include "World.h"
+#include "STW.h"
 
 DWORD WINAPI Main(LPVOID)
 {
     Logging::Initialize();
     Types::Initialize();
-    World::Initialize();
-    ActorNamespace::Initialize();
-    ProcessEventNamespace::Initialize();
+    SDK::FString cmd = GetCommandLineW();
+    auto pos = cmd.ToString();
+    if (pos.find("-stw" || "-STW"))
+    {
+        Globals::bInitializeAsSTW = true;
+        STW::Initialize();
+    }
+    else {
+        World::Initialize();
+        ActorNamespace::Initialize();
+        ProcessEventNamespace::Initialize();
+    }
     return 0;
 }
 

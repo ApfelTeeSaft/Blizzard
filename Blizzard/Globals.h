@@ -8,10 +8,7 @@
 namespace Globals
 {
     bool bBeaconInitialized = false;
-    
-    static SDK::UFortEngine* CachedEngine = nullptr;
-    static SDK::UWorld* CachedWorld = nullptr;
-    static bool bEngineValidated = false;
+    bool bInitializeAsSTW = false;
 
     SDK::UFortEngine* GetEngine()
     {
