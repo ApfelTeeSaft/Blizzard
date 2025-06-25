@@ -30,6 +30,7 @@ namespace ProcessEventNamespace
 					{
 						GameState->GamePhase = SDK::EAthenaGamePhase::Warmup;
 						Logging::SafeLog(ELogEvent::Info, ELogType::ProcessEvent, "GameState->GamePhase is now EAthenaGamePhase::Warmup");
+						GameState->OnRep_GamePhase(SDK::EAthenaGamePhase::None);
 					}
 				}
 

@@ -206,12 +206,12 @@ namespace Replication
 			OutConsiderList.push_back(Info);
 		}
 
-		if (Actors.Data)
+		if (Actors.GetData())
 		{
-			SDK::FreeInternal((__int64)Actors.Data);
-			Actors.Data = nullptr;
-			Actors.Count = 0;
-			Actors.Max = 0;
+			SDK::FreeInternal((__int64)Actors.GetData());
+			Actors.SetData(nullptr);
+			Actors.SetNum(0);
+			Actors.SetMax(0);
 		}
 	}
 

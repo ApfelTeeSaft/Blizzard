@@ -232,100 +232,84 @@ namespace UC
 	private:
 		template<typename ArrayElementType>
 		friend class TAllocatedArray;
-
 		template<typename SparseArrayElementType>
 		friend class TSparseArray;
-
 	protected:
 		static constexpr uint64 ElementAlign = alignof(ArrayElementType);
 		static constexpr uint64 ElementSize = sizeof(ArrayElementType);
-
 	protected:
 		ArrayElementType* Data;
 		int32 NumElements;
 		int32 MaxElements;
-
 	public:
 		TArray()
 			: Data(nullptr), NumElements(0), MaxElements(0)
 		{
 		}
-
 		TArray(const TArray&) = default;
-
 		TArray(TArray&&) = default;
-
 	public:
 		TArray& operator=(TArray&&) = default;
 		TArray& operator=(const TArray&) = default;
-
 	private:
 		inline int32 GetSlack() const { return MaxElements - NumElements; }
-
 		inline void VerifyIndex(int32 Index) const { if (!IsValidIndex(Index)) throw std::out_of_range("Index was out of range!"); }
-
-		inline       ArrayElementType& GetUnsafe(int32 Index)       { return Data[Index]; }
+		inline       ArrayElementType& GetUnsafe(int32 Index) { return Data[Index]; }
 		inline const ArrayElementType& GetUnsafe(int32 Index) const { return Data[Index]; }
-
 	public:
 		/* Adds to the array if there is still space for one more element */
 		inline bool Add(const ArrayElementType& Element)
 		{
 			if (GetSlack() <= 0)
 				return false;
-
 			Data[NumElements] = Element;
 			NumElements++;
-
 			return true;
 		}
-
 		inline bool Remove(int32 Index)
 		{
 			if (!IsValidIndex(Index))
 				return false;
-
 			NumElements--;
-
 			for (int i = Index; i < NumElements; i++)
 			{
 				/* NumElements was decremented, acessing i + 1 is safe */
 				Data[i] = Data[i + 1];
 			}
-
 			return true;
 		}
-
 		inline void Clear()
 		{
 			NumElements = 0;
-
 			if (Data)
 				memset(Data, 0, NumElements * ElementSize);
 		}
-
 	public:
+		// Basic accessors
 		inline int32 Num() const { return NumElements; }
 		inline int32 Max() const { return MaxElements; }
-
 		inline const ArrayElementType* GetDataPtr() const { return Data; }
-
 		inline bool IsValidIndex(int32 Index) const { return Data && Index >= 0 && Index < NumElements; }
-
 		inline bool IsValid() const { return Data && NumElements > 0 && MaxElements >= NumElements; }
 
-	public:
-		inline       ArrayElementType& operator[](int32 Index)       { VerifyIndex(Index); return Data[Index]; }
-		inline const ArrayElementType& operator[](int32 Index) const { VerifyIndex(Index); return Data[Index]; }
+		// UE4 compatibility methods
+		inline ArrayElementType* GetData() { return Data; }
+		inline const ArrayElementType* GetData() const { return Data; }
+		inline int32 Count() const { return NumElements; }
 
+		// Setter methods for manual memory management
+		inline void SetData(ArrayElementType* NewData) { Data = NewData; }
+		inline void SetNum(int32 NewNum) { NumElements = NewNum; }
+		inline void SetMax(int32 NewMax) { MaxElements = NewMax; }
+	public:
+		inline       ArrayElementType& operator[](int32 Index) { VerifyIndex(Index); return Data[Index]; }
+		inline const ArrayElementType& operator[](int32 Index) const { VerifyIndex(Index); return Data[Index]; }
 		inline bool operator==(const TArray<ArrayElementType>& Other) const { return Data == Other.Data; }
 		inline bool operator!=(const TArray<ArrayElementType>& Other) const { return Data != Other.Data; }
-
 		inline explicit operator bool() const { return IsValid(); };
-
 	public:
 		template<typename T> friend Iterators::TArrayIterator<T> begin(const TArray& Array);
-		template<typename T> friend Iterators::TArrayIterator<T> end  (const TArray& Array);
+		template<typename T> friend Iterators::TArrayIterator<T> end(const TArray& Array);
 	};
 
 	class FString : public TArray<wchar_t>

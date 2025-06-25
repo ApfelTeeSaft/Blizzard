@@ -4,8 +4,6 @@
 
 namespace World
 {
-	bool bLevelSwitchPending = false;
-
 	bool SafeSwitchLevel()
 	{
 		Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "=== Starting Safe Level Switch ===");
@@ -67,6 +65,8 @@ namespace World
 	{
 		Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "=== Starting World Initialization ===");
 
+		SafeSwitchLevel();
+
 		Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "Setting GIsClient to false...");
 		auto gIsClientAddr = Globals::GetAddress(0x46AD734);
 		DWORD oldProtect;
@@ -100,9 +100,6 @@ namespace World
 				Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to change protection for function at 0x%llX", funcAddr);
 			}
 		}
-
-		bLevelSwitchPending = true;
-		Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "Level switch marked as pending - will be triggered later");
 
 		Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "=== World Initialization Completed ===");
 	}
