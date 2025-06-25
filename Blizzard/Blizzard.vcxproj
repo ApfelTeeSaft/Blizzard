@@ -154,6 +154,7 @@
     <ClInclude Include="Logging.h" />
     <ClInclude Include="ProcessEvent.h" />
     <ClInclude Include="Replication.h" />
+    <ClInclude Include="STW.h" />
     <ClInclude Include="Types.h" />
     <ClInclude Include="World.h" />
   </ItemGroup>
