@@ -15,30 +15,9 @@ namespace Globals
 
     SDK::UFortEngine* GetEngine()
     {
-        if (CachedEngine && bEngineValidated)
-            return CachedEngine;
+        auto Engine = SDK::UObject::FindObject<SDK::UFortEngine>("FortEngine Transient.FortEngine_0");
 
-        try
-        {
-            if (!SDK::UObject::GObjects)
-                return nullptr;
-
-            CachedEngine = SDK::UObject::FindObject<SDK::UFortEngine>("FortEngine Transient.FortEngine_0");
-            
-            if (CachedEngine)
-            {
-                bEngineValidated = true;
-                Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "Engine cached successfully");
-            }
-            
-            return CachedEngine;
-        }
-        catch (...)
-        {
-            CachedEngine = nullptr;
-            bEngineValidated = false;
-            return nullptr;
-        }
+        return Engine;
     }
 
     SDK::AFortPlayerController* GetPlayerController()
@@ -63,36 +42,7 @@ namespace Globals
 
     SDK::UWorld* GetWorld()
     {
-        if (CachedWorld)
-            return CachedWorld;
-
-        try
-        {
-            auto engine = GetEngine();
-            if (!engine || !engine->GameViewport)
-                return nullptr;
-
-            CachedWorld = engine->GameViewport->World;
-            
-            if (CachedWorld)
-            {
-                Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "World cached successfully");
-            }
-            
-            return CachedWorld;
-        }
-        catch (...)
-        {
-            CachedWorld = nullptr;
-            return nullptr;
-        }
-    }
-
-    void InvalidateCache()
-    {
-        CachedEngine = nullptr;
-        CachedWorld = nullptr;
-        bEngineValidated = false;
+        return GetEngine()->GameViewport->World;
     }
 
     uintptr_t GetBaseAddress()
