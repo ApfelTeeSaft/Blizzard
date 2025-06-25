@@ -1,4 +1,5 @@
 #pragma once
+#include <vector>
 #include "SDK.hpp"
 #include "Globals.h"
 #include "FN_Basic.hpp"
@@ -23,39 +24,83 @@ namespace ProcessEventNamespace
 				auto World = Globals::GetWorld();
 				if (World && World->GameState)
 				{
-					auto GameState = (SDK::AFortGameStateAthena*)(World->GameState);
+					auto GameState = reinterpret_cast<SDK::AFortGameStateAthena*>(GameMode->GameState);
 					Logging::SafeLog(ELogEvent::Info, ELogType::ProcessEvent, "Got GameState");
 					if (GameState)
 					{
 						GameState->GamePhase = SDK::EAthenaGamePhase::Warmup;
 						Logging::SafeLog(ELogEvent::Info, ELogType::ProcessEvent, "GameState->GamePhase is now EAthenaGamePhase::Warmup");
-						GameState->OnRep_GamePhase(SDK::EAthenaGamePhase::None);
-						Logging::SafeLog(ELogEvent::Info, ELogType::ProcessEvent, "GameState->OnRep_GamePhase is now EAthenaGamePhase::::None");
 					}
 				}
 
 				if (World)
 				{
-					SDK::TArray<SDK::AActor*> OutHLODs;
-					SDK::UGameplayStatics::GetDefaultObj()->GetAllActorsOfClass(World, SDK::AFortHLODSMActor::StaticClass(), &OutHLODs);
-
-					for (int i = 0; i < OutHLODs.Num(); i++)
+					try
 					{
-						auto Actor = OutHLODs[i];
-						if (Actor && !Actor->bActorIsBeingDestroyed)
+						auto GameplayStatics = SDK::UGameplayStatics::GetDefaultObj();
+						if (!GameplayStatics)
 						{
-							Actor->K2_DestroyActor();
-							Logging::SafeLog(ELogEvent::Error, ELogType::ProcessEvent, "Destroyed HLOD Actor: %s", Actor->Name.ToString().c_str());
+							Logging::SafeLog(ELogEvent::Warning, ELogType::ProcessEvent, "UGameplayStatics::GetDefaultObj() returned null");
+						}
+						else
+						{
+							auto HLODStaticClass = SDK::AFortHLODSMActor::StaticClass();
+							if (!HLODStaticClass)
+							{
+								Logging::SafeLog(ELogEvent::Warning, ELogType::ProcessEvent, "AFortHLODSMActor::StaticClass() returned null");
+							}
+							else
+							{
+								SDK::TArray<SDK::AActor*> OutHLODs;
+
+								Logging::SafeLog(ELogEvent::Info, ELogType::ProcessEvent, "Attempting to get HLOD actors...");
+								GameplayStatics->GetAllActorsOfClass(World, HLODStaticClass, &OutHLODs);
+
+								if (OutHLODs.IsValid() && OutHLODs.Num() > 0)
+								{
+									Logging::SafeLog(ELogEvent::Info, ELogType::ProcessEvent, "Found %d HLOD actors to destroy", OutHLODs.Num());
+
+									int destroyedCount = 0;
+									for (int i = 0; i < OutHLODs.Num(); i++)
+									{
+										try
+										{
+											auto Actor = OutHLODs[i];
+											if (Actor && !Actor->bActorIsBeingDestroyed)
+											{
+												Actor->K2_DestroyActor();
+												destroyedCount++;
+											}
+										}
+										catch (...)
+										{
+											Logging::SafeLog(ELogEvent::Warning, ELogType::ProcessEvent, "Exception destroying HLOD actor at index %d", i);
+											continue;
+										}
+									}
+									Logging::SafeLog(ELogEvent::Info, ELogType::ProcessEvent, "Successfully destroyed %d HLOD Actors", destroyedCount);
+								}
+								else
+								{
+									Logging::SafeLog(ELogEvent::Info, ELogType::ProcessEvent, "No HLOD actors found or array is invalid");
+								}
+							}
 						}
 					}
-					Logging::SafeLog(ELogEvent::Error, ELogType::ProcessEvent, "Destroyed all HLOD Actors!");
+					catch (...)
+					{
+						Logging::SafeLog(ELogEvent::Error, ELogType::ProcessEvent, "Exception during HLOD cleanup - continuing anyway");
+					}
 				}
 			}
 			catch (...)
 			{
 				Logging::SafeLog(ELogEvent::Error, ELogType::ProcessEvent, "Failed to initialize beacons");
+				Globals::bBeaconInitialized = false;
 			}
 		}
+
+		return oReadyToStartMatch(GameMode);
 	}
 
 	void (*oServerReadyToStartMatch)(SDK::AFortPlayerControllerAthena* PlayerController);
@@ -242,11 +287,47 @@ namespace ProcessEventNamespace
 			auto BuildRot = PlayerController->LastBuildPreviewGridSnapRot;
 			auto BuildClass = PlayerController->CurrentBuildableClass;
 
-			auto BuildingActor = ActorNamespace::SpawnActor<SDK::ABuildingActor>(BuildLoc, BuildRot, BuildClass);
+			auto BuildingActor = ActorNamespace::SpawnActor<SDK::ABuildingActor>(BuildClass, BuildLoc, BuildRot);
+
 			if (BuildingActor)
 			{
-				BuildingActor->InitializeKismetSpawnedBuildingActor(BuildingActor, PlayerController);
+				Logging::SafeLog(ELogEvent::Info, ELogType::ProcessEvent, "Successfully spawned building actor");
+
+				try
+				{
+					BuildingActor->InitializeKismetSpawnedBuildingActor(BuildingActor, PlayerController);
+					Logging::SafeLog(ELogEvent::Info, ELogType::ProcessEvent, "Building actor initialized successfully");
+				}
+				catch (...)
+				{
+					Logging::SafeLog(ELogEvent::Error, ELogType::ProcessEvent, "Exception during building actor initialization");
+				}
 			}
+			else
+			{
+				Logging::SafeLog(ELogEvent::Error, ELogType::ProcessEvent, "Failed to spawn building actor");
+
+				try
+				{
+					auto BuildingActor = ActorNamespace::SpawnActor<SDK::ABuildingActor>(BuildClass, BuildLoc, BuildRot);
+					if (BuildingActor)
+					{
+						BuildingActor->InitializeKismetSpawnedBuildingActor(BuildingActor, PlayerController);
+						Logging::SafeLog(ELogEvent::Info, ELogType::ProcessEvent, "Building actor spawned using fallback method");
+					}
+				}
+				catch (...)
+				{
+					Logging::SafeLog(ELogEvent::Error, ELogType::ProcessEvent, "Both spawn methods failed for building actor");
+				}
+			}
+		}
+		else
+		{
+			if (!PlayerController)
+				Logging::SafeLog(ELogEvent::Warning, ELogType::ProcessEvent, "PlayerController is null in hkServerCreateBuildingActor");
+			if (!PlayerController->CurrentBuildableClass)
+				Logging::SafeLog(ELogEvent::Warning, ELogType::ProcessEvent, "CurrentBuildableClass is null in hkServerCreateBuildingActor");
 		}
 	}
 
@@ -413,15 +494,15 @@ namespace ProcessEventNamespace
 
 	void Initialize()
 	{
-		Globals::CreateHook(Globals::GetAddress(SDK::Offsets::ProcessEvent), ProcessEventHook, (void**)&ProcessEvent);
+		// Globals::CreateHook(Globals::GetAddress(SDK::Offsets::ProcessEvent), ProcessEventHook, (void**)&ProcessEvent);
 		Globals::CreateHook(Globals::GetAddress(0x236E670), hkCollectGarbage);
-		Globals::CreateHook(Globals::GetAddress(0x9b0d40), hkReadyToStartMatch, (void**)(&oReadyToStartMatch));
-		Globals::CreateHook(Globals::GetAddress(0xe30f00), hkServerReadyToStartMatch, (void**)(&oServerReadyToStartMatch));
-		Globals::CreateHook(Globals::GetAddress(0x126f320), hkServerExecuteInventoryItem);
-		Globals::CreateHook(Globals::GetAddress(0x9b4de0), ServerAttemptAircraftJumpHook);
-		// Globals::CreateHook(Globals::GetAddress(0x000000), hkServerReturnToMainMenu);
-		Globals::CreateHook(Globals::GetAddress(0x126f320), hkServerHandlePickup, (void**)(&oServerHandlePickup));
-		Globals::CreateHook(Globals::GetAddress(0x10715a0), hkServerCreateBuildingActor);
-		Globals::CreateHook(Globals::GetAddress(0x126f320), hkServerPlayEmoteItem);
+		Globals::CreateHook(Globals::GetAddress(0x240F4A0), hkReadyToStartMatch, (void**)(&oReadyToStartMatch));
+		Globals::CreateHook(Globals::GetAddress(0x1072E40), hkServerReadyToStartMatch, (void**)(&oServerReadyToStartMatch));
+		Globals::CreateHook(Globals::GetAddress(0x1071E10), hkServerExecuteInventoryItem);
+		Globals::CreateHook(Globals::GetAddress(0x107B910), ServerAttemptAircraftJumpHook);
+		Globals::CreateHook(Globals::GetAddress(0x1073830), hkServerReturnToMainMenu);
+		Globals::CreateHook(Globals::GetAddress(0x1084A90), hkServerHandlePickup, (void**)(&oServerHandlePickup));
+		Globals::CreateHook(Globals::GetAddress(0x10715A0), hkServerCreateBuildingActor);
+		Globals::CreateHook(Globals::GetAddress(0x1072D80), hkServerPlayEmoteItem);
 	}
 }
