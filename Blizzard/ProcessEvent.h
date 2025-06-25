@@ -84,6 +84,9 @@ namespace ProcessEventNamespace
 								{
 									Logging::SafeLog(ELogEvent::Info, ELogType::ProcessEvent, "No HLOD actors found or array is invalid");
 								}
+
+								OutHLODs.Clear();
+								Logging::SafeLog(ELogEvent::Info, ELogType::ProcessEvent, "HLOD array cleared successfully");
 							}
 						}
 					}

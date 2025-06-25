@@ -179,7 +179,6 @@ namespace Types
         {
             Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "=== Starting SDK Types Initialization ===");
 
-            // Initialize MinHook first
             try
             {
                 Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "Initializing MinHook...");
@@ -197,7 +196,6 @@ namespace Types
                 return false;
             }
 
-            // Get and log base address
             try
             {
                 Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "Getting game base address...");
@@ -209,7 +207,6 @@ namespace Types
                 }
                 Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "Game base address: 0x%llX", baseAddr);
 
-                // Test address resolution
                 uintptr_t testAddr = Globals::GetAddress(0x47B8388);
                 Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "Test address resolution (GObjects): 0x%llX", testAddr);
             }
@@ -281,7 +278,6 @@ namespace Types
                 allSuccess = false;
             }
 
-            // Final status
             if (allSuccess)
             {
                 Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "=== ALL SDK TYPES INITIALIZED SUCCESSFULLY ===");

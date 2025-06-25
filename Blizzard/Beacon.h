@@ -29,9 +29,22 @@ namespace Beacons
 
 	inline SDK::FVector GetPlayerStart()
 	{
-		SDK::TArray<SDK::AActor*> OutActors;
+		UC::TArray<SDK::AActor*> OutActors;
 		SDK::UGameplayStatics::GetDefaultObj()->GetAllActorsOfClass(Globals::GetWorld(), SDK::APlayerStart::StaticClass(), &OutActors);
-		return OutActors[rand() % OutActors.Num()]->K2_GetActorLocation();
+
+		if (OutActors.IsValid() && OutActors.Num() > 0)
+		{
+			auto result = OutActors[rand() % OutActors.Num()]->K2_GetActorLocation();
+
+			if (OutActors.GetDataPtr())
+			{
+				SDK::FreeInternal((__int64)const_cast<SDK::AActor**>(OutActors.GetDataPtr()));
+				OutActors.Clear();
+			}
+
+			return result;
+		}
+		return SDK::FVector{ 0.0f, 0.0f, 0.0f };
 	}
 
 	inline void __fastcall AOnlineBeaconHost_NotifyControlMessageHook(SDK::AOnlineBeaconHost* BeaconHost, SDK::UNetConnection* NetConnection, uint8_t a3, void* a4)

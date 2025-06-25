@@ -1,7 +1,6 @@
 #pragma once
 #include "SDK.hpp"
 #include <windows.h>
-using namespace SDK;
 
 enum class EChannelType : uint8_t
 {
@@ -15,7 +14,7 @@ enum class EChannelType : uint8_t
 
 struct FNetworkObjectInfo
 {
-	AActor* Actor;
+	SDK::AActor* Actor;
 	double NextUpdateTime;
 	double LastNetReplicateTime;
 	float OptimalNetUpdateDelta;
@@ -24,8 +23,8 @@ struct FNetworkObjectInfo
 	uint32_t bPendingNetUpdate : 1;
 	uint32_t bForceRelevantNextUpdate : 1;
 	uint32_t bTearOff : 1;
-	std::vector<UNetConnection*> DormantConnections;
-	std::vector<UNetConnection*> RecentlyDormantConnections;
+	std::vector<SDK::UNetConnection*> DormantConnections;
+	std::vector<SDK::UNetConnection*> RecentlyDormantConnections;
 };
 
 inline int32_t Rand() { return rand(); };
@@ -33,22 +32,22 @@ inline float FRand() { return Rand() / (float)RAND_MAX; };
 
 namespace Replication
 {
-	inline static UChannel* (*CreateChannel)(UNetConnection*, EChannelType, bool, int32_t);
-	inline static bool (*ReplicateActor)(UActorChannel*);
-	inline static void (*SetChannelActor)(UActorChannel*, AActor*);
-	inline static void (*CallPreReplication)(AActor*, UNetDriver*);
-	inline static void (*SendClientAdjustment)(APlayerController*);
-	inline static void (*ActorChannelClose)(UActorChannel*);
+	inline static SDK::UChannel* (*CreateChannel)(SDK::UNetConnection*, EChannelType, bool, int32_t);
+	inline static bool (*ReplicateActor)(SDK::UActorChannel*);
+	inline static void (*SetChannelActor)(SDK::UActorChannel*, SDK::AActor*);
+	inline static void (*CallPreReplication)(SDK::AActor*, SDK::UNetDriver*);
+	inline static void (*SendClientAdjustment)(SDK::APlayerController*);
+	inline static void (*ActorChannelClose)(SDK::UActorChannel*);
 
-	UActorChannel* ReplicateToClient(AActor* InActor, UNetConnection* InConnection)
+	SDK::UActorChannel* ReplicateToClient(SDK::AActor* InActor, SDK::UNetConnection* InConnection)
 	{
 		if (!InActor || !InConnection)
 			return nullptr;
 
-		if (InActor->IsA(APlayerController::StaticClass()) && InActor != InConnection->PlayerController)
+		if (InActor->IsA(SDK::APlayerController::StaticClass()) && InActor != InConnection->PlayerController)
 			return nullptr;
 
-		auto Channel = (UActorChannel*)(CreateChannel(InConnection, EChannelType::CHTYPE_Actor, true, -1));
+		auto Channel = (SDK::UActorChannel*)(CreateChannel(InConnection, EChannelType::CHTYPE_Actor, true, -1));
 
 		if (Channel) {
 			SetChannelActor(Channel, InActor);
@@ -61,26 +60,26 @@ namespace Replication
 		return nullptr;
 	}
 
-	int PrepConnections(UNetDriver* NetDriver)
+	int PrepConnections(SDK::UNetDriver* NetDriver)
 	{
 		int ReadyConnections = 0;
 
 		for (int ConnIdx = 0; ConnIdx < NetDriver->ClientConnections.Num(); ConnIdx++)
 		{
-			UNetConnection* Connection = NetDriver->ClientConnections[ConnIdx];
+			SDK::UNetConnection* Connection = NetDriver->ClientConnections[ConnIdx];
 			if (!Connection || !Connection->PlayerController)
 				continue;
 
-			AActor* OwningActor = Connection->OwningActor;
+			SDK::AActor* OwningActor = Connection->OwningActor;
 
 			if (OwningActor && !OwningActor->bActorIsBeingDestroyed)
 			{
 				ReadyConnections++;
-				AActor* DesiredViewTarget = OwningActor;
+				SDK::AActor* DesiredViewTarget = OwningActor;
 
 				if (Connection->PlayerController)
 				{
-					if (AActor* ViewTarget = Connection->PlayerController->GetViewTarget())
+					if (SDK::AActor* ViewTarget = Connection->PlayerController->GetViewTarget())
 					{
 						if (!ViewTarget->bActorIsBeingDestroyed)
 						{
@@ -93,7 +92,7 @@ namespace Replication
 
 				for (int ChildIdx = 0; ChildIdx < Connection->Children.Num(); ++ChildIdx)
 				{
-					UNetConnection* ChildConnection = Connection->Children[ChildIdx];
+					SDK::UNetConnection* ChildConnection = Connection->Children[ChildIdx];
 					if (ChildConnection && ChildConnection->PlayerController)
 					{
 						ChildConnection->ViewTarget = DesiredViewTarget;
@@ -106,7 +105,7 @@ namespace Replication
 
 				for (int ChildIdx = 0; ChildIdx < Connection->Children.Num(); ++ChildIdx)
 				{
-					UNetConnection* ChildConnection = Connection->Children[ChildIdx];
+					SDK::UNetConnection* ChildConnection = Connection->Children[ChildIdx];
 					if (ChildConnection)
 					{
 						ChildConnection->ViewTarget = nullptr;
@@ -118,7 +117,7 @@ namespace Replication
 		return ReadyConnections;
 	}
 
-	UActorChannel* FindChannel(AActor* Actor, UNetConnection* Connection)
+	SDK::UActorChannel* FindChannel(SDK::AActor* Actor, SDK::UNetConnection* Connection)
 	{
 		if (!Actor || !Connection)
 			return nullptr;
@@ -129,10 +128,10 @@ namespace Replication
 
 			if (Channel && Channel->Class)
 			{
-				if (Channel->Class == UActorChannel::StaticClass())
+				if (Channel->Class == SDK::UActorChannel::StaticClass())
 				{
-					if (((UActorChannel*)Channel)->Actor == Actor)
-						return ((UActorChannel*)Channel);
+					if (((SDK::UActorChannel*)Channel)->Actor == Actor)
+						return ((SDK::UActorChannel*)Channel);
 				}
 			}
 		}
@@ -140,30 +139,30 @@ namespace Replication
 		return nullptr;
 	}
 
-	UNetConnection* GetOwningConnection(AActor* Actor)
+	SDK::UNetConnection* GetOwningConnection(SDK::AActor* Actor)
 	{
 		if (!Actor)
 			return nullptr;
 
 		for (auto Owner = Actor; Owner; Owner = Owner->GetOwner())
 		{
-			if (Owner->IsA(APlayerController::StaticClass()))
+			if (Owner->IsA(SDK::APlayerController::StaticClass()))
 			{
-				return ((APlayerController*)Owner)->NetConnection;
+				return ((SDK::APlayerController*)Owner)->NetConnection;
 			}
 		}
 		return nullptr;
 	}
 
-	bool ShouldReplicateActor(AActor* Actor, UNetDriver* NetDriver)
+	bool ShouldReplicateActor(SDK::AActor* Actor, SDK::UNetDriver* NetDriver)
 	{
 		if (!Actor || Actor->bActorIsBeingDestroyed)
 			return false;
 
-		if (Actor->RemoteRole == ENetRole::ROLE_None)
+		if (Actor->RemoteRole == SDK::ENetRole::ROLE_None)
 			return false;
 
-		if (Actor->NetDormancy == ENetDormancy::DORM_Initial && Actor->bNetStartup)
+		if (Actor->NetDormancy == SDK::ENetDormancy::DORM_Initial && Actor->bNetStartup)
 			return false;
 
 		if (Actor->bTearOff)
@@ -175,10 +174,10 @@ namespace Replication
 		return true;
 	}
 
-	void BuildConsiderList(UNetDriver* NetDriver, std::vector<FNetworkObjectInfo*>& OutConsiderList)
+	void BuildConsiderList(SDK::UNetDriver* NetDriver, std::vector<FNetworkObjectInfo*>& OutConsiderList)
 	{
-		TArray<AActor*> Actors;
-		UGameplayStatics::GetDefaultObj()->GetAllActorsOfClass(Globals::GetWorld(), SDK::AActor::StaticClass(), &Actors);
+		SDK::TArray<SDK::AActor*> Actors;
+		SDK::UGameplayStatics::GetDefaultObj()->GetAllActorsOfClass(Globals::GetWorld(), SDK::AActor::StaticClass(), &Actors);
 
 		for (int i = 0; i < Actors.Num(); i++)
 		{
@@ -207,11 +206,16 @@ namespace Replication
 			OutConsiderList.push_back(Info);
 		}
 
-		if (Actors.Num() > 0) {
+		if (Actors.Data)
+		{
+			SDK::FreeInternal((__int64)Actors.Data);
+			Actors.Data = nullptr;
+			Actors.Count = 0;
+			Actors.Max = 0;
 		}
 	}
 
-	void ReplicateActors(UNetDriver* NetDriver)
+	void ReplicateActors(SDK::UNetDriver* NetDriver)
 	{
 		if (!NetDriver)
 			return;
@@ -271,7 +275,7 @@ namespace Replication
 				{
 					if (ReplicateActor(Channel))
 					{
-						ActorInfo->LastNetReplicateTime = UGameplayStatics::GetTimeSeconds(Globals::GetWorld());
+						ActorInfo->LastNetReplicateTime = SDK::UGameplayStatics::GetTimeSeconds(Globals::GetWorld());
 					}
 				}
 			}
