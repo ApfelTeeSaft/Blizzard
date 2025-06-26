@@ -4,10 +4,11 @@
 #include <Windows.h>
 
 // WIP
-namespace STW
+namespace STWNamespace
 {
 	void Initialize()
 	{
+		Logging::Log(ELogEvent::Info, ELogType::STW, "Initializing STW...");
 		// ActorNamespace::Initialize();
 	}
 }

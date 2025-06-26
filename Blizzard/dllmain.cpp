@@ -13,18 +13,26 @@ DWORD WINAPI Main(LPVOID)
     Types::Initialize();
     SDK::FString cmd = GetCommandLineW();
     auto pos = cmd.ToString();
-    if (pos.find("-stw" || "-STW"))
+
+    Logging::Log(ELogEvent::Info, ELogType::Game, "Command Line: ", pos);
+    if (pos.find("-stw") != std::string::npos || pos.find("-STW") != std::string::npos)
     {
         Globals::bInitializeAsSTW = true;
-        STW::Initialize();
+        Logging::Log(ELogEvent::Info, ELogType::Game, "Globals::bInitializeAsSTW: ", Globals::bInitializeAsSTW ? "true" : "false");
+        STWNamespace::Initialize();
     }
-    else {
+    else
+    {
+        Logging::Log(ELogEvent::Info, ELogType::Game, "Globals::bInitializeAsSTW: ", Globals::bInitializeAsSTW ? "true" : "false");
+        Logging::Log(ELogEvent::Info, ELogType::Athena, "Initializing Battle Royale...");
         World::Initialize();
         ActorNamespace::Initialize();
         ProcessEventNamespace::Initialize();
     }
+
     return 0;
 }
+
 
 BOOL APIENTRY DllMain( HMODULE hModule,
                        DWORD  ul_reason_for_call,

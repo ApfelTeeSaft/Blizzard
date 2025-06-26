@@ -21,7 +21,8 @@ enum ELogType : uint8_t
     ProcessEvent = 9,
     Quests = 10,
     Bot = 11,
-    GameOutput = 12
+    GameOutput = 12,
+    STW
 };
 
 enum ELogEvent : uint8_t
