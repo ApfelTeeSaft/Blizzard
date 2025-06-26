@@ -1,5 +1,4 @@
 // dllmain.cpp : Defines the entry point for the DLL application.
-#include "framework.h"
 #include "Logging.h"
 #include "Types.h"
 #include "Actor.h"
@@ -10,11 +9,12 @@
 DWORD WINAPI Main(LPVOID)
 {
     Logging::Initialize();
-    Types::Initialize();
     SDK::FString cmd = GetCommandLineW();
     auto pos = cmd.ToString();
-
     Logging::Log(ELogEvent::Info, ELogType::Game, "Command Line: ", pos);
+    Types::Initialize();
+    ActorNamespace::Initialize();
+
     if (pos.find("-stw") != std::string::npos || pos.find("-STW") != std::string::npos)
     {
         Globals::bInitializeAsSTW = true;
@@ -26,7 +26,6 @@ DWORD WINAPI Main(LPVOID)
         Logging::Log(ELogEvent::Info, ELogType::Game, "Globals::bInitializeAsSTW: ", Globals::bInitializeAsSTW ? "true" : "false");
         Logging::Log(ELogEvent::Info, ELogType::Athena, "Initializing Battle Royale...");
         World::Initialize();
-        ActorNamespace::Initialize();
         ProcessEventNamespace::Initialize();
     }
 
