@@ -9,23 +9,38 @@
 DWORD WINAPI Main(LPVOID)
 {
     Logging::Initialize();
-    SDK::FString cmd = GetCommandLineW();
-    auto pos = cmd.ToString();
-    Logging::Log(ELogEvent::Info, ELogType::Game, "Command Line: ", pos);
     Types::Initialize();
-    ActorNamespace::Initialize();
 
-    if (pos.find("-stw") != std::string::npos || pos.find("-STW") != std::string::npos)
+    std::wstring cmdStr = GetCommandLineW();
+
+    Logging::Log(ELogEvent::Info, ELogType::Game, "Command Line: ", cmdStr);
+
+    Globals::bInitializeAsSTW = (cmdStr.find(L"-stw") != std::wstring::npos || cmdStr.find(L"-STW") != std::wstring::npos);
+
+    std::wstring mapName = L"Zone_Onboarding_FarmsteadFort"; // default
+    size_t pos = cmdStr.find(L"-mapname=");
+    if (pos == std::wstring::npos)
+        pos = cmdStr.find(L"-MapName=");
+
+    if (pos != std::wstring::npos)
     {
-        Globals::bInitializeAsSTW = true;
-        Logging::Log(ELogEvent::Info, ELogType::Game, "Globals::bInitializeAsSTW: ", Globals::bInitializeAsSTW ? "true" : "false");
-        STWNamespace::Initialize();
+        size_t start = pos + wcslen(L"-mapname=");
+        size_t end = cmdStr.find(L' ', start);
+        mapName = cmdStr.substr(start, end - start);
+        Logging::Log(ELogEvent::Info, ELogType::Game, "Parsed Map Name: ", mapName);
+    }
+
+    if (Globals::bInitializeAsSTW)
+    {
+        Logging::Log(ELogEvent::Info, ELogType::Game, "Globals::bInitializeAsSTW: true");
+        STWNamespace::Initialize(SDK::FString(mapName.c_str()));
     }
     else
     {
-        Logging::Log(ELogEvent::Info, ELogType::Game, "Globals::bInitializeAsSTW: ", Globals::bInitializeAsSTW ? "true" : "false");
+        Logging::Log(ELogEvent::Info, ELogType::Game, "Globals::bInitializeAsSTW: false");
         Logging::Log(ELogEvent::Info, ELogType::Athena, "Initializing Battle Royale...");
         World::Initialize();
+        ActorNamespace::Initialize();
         ProcessEventNamespace::Initialize();
     }
 
