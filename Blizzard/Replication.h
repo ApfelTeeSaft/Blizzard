@@ -41,7 +41,7 @@ namespace Replication
 			return Channel;
 		}
 
-		return NULL;
+		return nullptr;
 	}
 
 	int PrepConnections(SDK::UNetDriver* NetDriver)
@@ -113,7 +113,7 @@ namespace Replication
 			}
 		}
 
-		return NULL;
+		return nullptr;
 	}
 
 	SDK::UNetConnection* GetOwningConnection(SDK::AActor* Actor)
@@ -125,6 +125,8 @@ namespace Replication
 				return ((SDK::APlayerController*)Actor)->NetConnection;
 			}
 		}
+
+		return nullptr;
 	}
 
 	void BuildConsiderList(SDK::UNetDriver* NetDriver, std::vector<FNetworkObjectInfo*>& OutConsiderList)
@@ -138,11 +140,6 @@ namespace Replication
 
 			if (!Actor)
 				continue;
-
-			if (!Actor)
-			{
-				continue;
-			}
 
 			if (Actor->bActorIsBeingDestroyed)
 			{
@@ -171,8 +168,11 @@ namespace Replication
 			}
 		}
 
-		SDK::FreeInternal((__int64)Actors.GetData());
-		Actors.SetData(0);
+		if (Actors.GetData())
+		{
+			SDK::FreeInternal((__int64)Actors.GetData());
+		}
+		Actors.SetData(nullptr);
 		Actors.SetNum(0);
 		Actors.SetMax(0);
 	}
@@ -206,7 +206,7 @@ namespace Replication
 
 			for (int32_t ChildIdx = 0; ChildIdx < Connection->Children.Num(); ChildIdx++)
 			{
-				if (Connection->Children[ChildIdx]->PlayerController != NULL)
+				if (Connection->Children[ChildIdx]->PlayerController != nullptr)
 				{
 					SendClientAdjustment(Connection->Children[ChildIdx]->PlayerController);
 				}
@@ -229,23 +229,26 @@ namespace Replication
 				{
 					if (ReplicateActor(Channel))
 					{
+						// bim bim bam bam
 					}
 				}
 			}
 		}
 
-		ConsiderList.empty();
+		for (auto* Info : ConsiderList)
+		{
+			delete Info;
+		}
 		ConsiderList.clear();
 	}
 
 	void InitOffsets()
 	{
-
 		CreateChannel = decltype(CreateChannel)(Globals::GetAddress(0x2105540));
 		SetChannelActor = decltype(SetChannelActor)(Globals::GetAddress(0x1F9C260));
 		ReplicateActor = decltype(ReplicateActor)(Globals::GetAddress(0x1F97D80));
 		CallPreReplication = decltype(CallPreReplication)(Globals::GetAddress(0x1D84F70));
-		SendClientAdjustment = decltype(SendClientAdjustment)(Globals::GetAddress(0x1D84F70));
+		SendClientAdjustment = decltype(SendClientAdjustment)(Globals::GetAddress(0x221FEC0));
 		ActorChannelClose = decltype(ActorChannelClose)(Globals::GetAddress(0x1F7E9C0));
 	}
 }

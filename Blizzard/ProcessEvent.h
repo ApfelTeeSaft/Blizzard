@@ -423,14 +423,63 @@ namespace ProcessEventNamespace
 	void Initialize()
 	{
 		// Globals::CreateHook(Globals::GetAddress(SDK::Offsets::ProcessEvent), ProcessEventHook, (void**)&ProcessEvent);
-		Globals::CreateHook(Globals::GetAddress(0x236E670), hkCollectGarbage);
-		Globals::CreateHook(Globals::GetAddress(0x240F4A0), hkReadyToStartMatch, (void**)(&oReadyToStartMatch));
-		Globals::CreateHook(Globals::GetAddress(0x1072E40), hkServerReadyToStartMatch, (void**)(&oServerReadyToStartMatch));
-		Globals::CreateHook(Globals::GetAddress(0x1071E10), hkServerExecuteInventoryItem);
-		Globals::CreateHook(Globals::GetAddress(0x107B910), ServerAttemptAircraftJumpHook);
-		Globals::CreateHook(Globals::GetAddress(0x1073830), hkServerReturnToMainMenu);
-		Globals::CreateHook(Globals::GetAddress(0x1084A90), hkServerHandlePickup, (void**)(&oServerHandlePickup));
-		Globals::CreateHook(Globals::GetAddress(0x10715A0), hkServerCreateBuildingActor);
-		Globals::CreateHook(Globals::GetAddress(0x1072D80), hkServerPlayEmoteItem);
+
+		auto result1 = Globals::CreateHook(Globals::GetAddress(0x236E670), hkCollectGarbage);
+		if (result1 != MH_OK)
+		{
+			Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to hook CollectGarbage: %d", result1);
+			return;
+		}
+
+		auto result2 = Globals::CreateHook(Globals::GetAddress(0x240F4A0), hkReadyToStartMatch, (void**)(&oReadyToStartMatch));
+		if (result2 != MH_OK)
+		{
+			Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to hook ReadyToStartMatch: %d", result1);
+			return;
+		}
+		auto result3 = Globals::CreateHook(Globals::GetAddress(0x1072E40), hkServerReadyToStartMatch, (void**)(&oServerReadyToStartMatch));
+		if (result3 != MH_OK)
+		{
+			Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to hook ServerReadyToStartMatch: %d", result1);
+			return;
+		}
+
+		auto result4 = Globals::CreateHook(Globals::GetAddress(0x1071E10), hkServerExecuteInventoryItem);
+		if (result4 != MH_OK)
+		{
+			Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to hook ServerExecuteInventoryItem: %d", result1);
+			return;
+		}
+		auto result5 = Globals::CreateHook(Globals::GetAddress(0x107B910), ServerAttemptAircraftJumpHook);
+		if (result5 != MH_OK)
+		{
+			Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to hook ServerAttemptAircraftJump: %d", result1);
+			return;
+		}
+		auto result6 = Globals::CreateHook(Globals::GetAddress(0x1073830), hkServerReturnToMainMenu);
+		if (result6 != MH_OK)
+		{
+			Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to hook ServerReturnToMainMenu: %d", result1);
+			return;
+		}
+		auto result7 = Globals::CreateHook(Globals::GetAddress(0x1084A90), hkServerHandlePickup, (void**)(&oServerHandlePickup));
+		if (result7 != MH_OK)
+		{
+			Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to hook ServerHandlePickup: %d", result1);
+			return;
+		}
+
+		auto result8 = Globals::CreateHook(Globals::GetAddress(0x10715A0), hkServerCreateBuildingActor);
+		if (result8 != MH_OK)
+		{
+			Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to hook ServerCreateBuildingActor: %d", result1);
+			return;
+		}
+		auto result9 = Globals::CreateHook(Globals::GetAddress(0x1072D80), hkServerPlayEmoteItem);
+		if (result9 != MH_OK)
+		{
+			Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to hook ServerPlayEmoteItem: %d", result1);
+			return;
+		}
 	}
 }
