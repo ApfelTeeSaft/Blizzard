@@ -16,11 +16,14 @@
     <Filter Include="MinHook">
       <UniqueIdentifier>{ef3d5cdc-2298-460e-9db5-b1c90062564c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="BattleRoyale">
+      <UniqueIdentifier>{c75be8c3-4732-41a4-b977-38cc9bc3ac15}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="STW">
+      <UniqueIdentifier>{662009d1-1834-47d1-aa60-cad0e5eac1e3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="framework.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Globals.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -33,26 +36,26 @@
     <ClInclude Include="FN_Basic.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Actor.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ProcessEvent.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Beacon.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Inventory.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Replication.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="World.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Beacon.h">
+      <Filter>BattleRoyale</Filter>
+    </ClInclude>
+    <ClInclude Include="Actor.h">
+      <Filter>BattleRoyale</Filter>
+    </ClInclude>
+    <ClInclude Include="Inventory.h">
+      <Filter>BattleRoyale</Filter>
+    </ClInclude>
+    <ClInclude Include="ProcessEvent.h">
+      <Filter>BattleRoyale</Filter>
+    </ClInclude>
     <ClInclude Include="STW.h">
-      <Filter>Header Files</Filter>
+      <Filter>STW</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

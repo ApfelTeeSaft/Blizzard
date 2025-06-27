@@ -148,7 +148,6 @@
     <ClInclude Include="Actor.h" />
     <ClInclude Include="Beacon.h" />
     <ClInclude Include="FN_Basic.hpp" />
-    <ClInclude Include="framework.h" />
     <ClInclude Include="Globals.h" />
     <ClInclude Include="Inventory.h" />
     <ClInclude Include="Logging.h" />

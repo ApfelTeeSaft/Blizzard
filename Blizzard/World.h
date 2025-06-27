@@ -61,6 +61,10 @@ namespace World
 		return true;
 	}
 
+	bool GameReservationPatch() {
+		return true;
+	}
+
 	void Initialize()
 	{
 		Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "=== Starting World Initialization ===");
@@ -81,8 +85,21 @@ namespace World
 			Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to change memory protection for GIsClient");
 		}
 
+		Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "Setting GIsServer to true...");
+		auto gIsServerAddr = Globals::GetAddress(0x46AD735);
+		if (VirtualProtect((LPVOID)gIsServerAddr, sizeof(bool), PAGE_READWRITE, &oldProtect))
+		{
+			*(bool*)gIsServerAddr = false;
+			VirtualProtect((LPVOID)gIsServerAddr, sizeof(bool), oldProtect, &oldProtect);
+			Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "GIsServer set to true successfully");
+		}
+		else
+		{
+			Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to change memory protection for GIsServer");
+		}
+
 		Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "Nulling out functions...");
-		std::vector<uintptr_t> functionsToNull = { 0xB6C9E0, 0xE2FA50 };
+		std::vector<uintptr_t> functionsToNull = { 0xB6C9E0, 0xE2FA50, 0x1BAF9F0 };
 
 		for (size_t i = 0; i < functionsToNull.size(); i++)
 		{
@@ -100,6 +117,8 @@ namespace World
 				Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to change protection for function at 0x%llX", funcAddr);
 			}
 		}
+
+		Globals::CreateHook(Globals::GetAddress(0xC98310), GameReservationPatch);
 
 		Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "=== World Initialization Completed ===");
 	}
