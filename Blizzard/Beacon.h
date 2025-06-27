@@ -85,11 +85,6 @@ namespace Beacons
 		return TickFlush(NetDriver, DeltaSeconds);
 	}
 
-	inline __int64 KickPatch(__int64, __int64)
-	{
-		return 0;
-	}
-
 	inline __int64 __fastcall WelcomePlayerHook(SDK::UWorld*, SDK::UNetConnection* NetConnection)
 	{
 		return WelcomePlayer(Globals::GetWorld(), NetConnection);
@@ -283,13 +278,6 @@ namespace Beacons
                 if (result3 != MH_OK)
                 {
                     Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to hook SpawnPlayActor: %d", result3);
-                    return;
-                }
-
-                auto result4 = Globals::CreateHook(Globals::GetAddress(0x2000E70), KickPatch, nullptr);
-                if (result4 != MH_OK)
-                {
-                    Logging::SafeLog(ELogEvent::Error, ELogType::Athena, "Failed to hook KickPatch: %d", result4);
                     return;
                 }
 

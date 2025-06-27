@@ -65,6 +65,11 @@ namespace World
 		return true;
 	}
 
+	inline __int64 KickPatch(__int64, __int64)
+	{
+		return 0;
+	}
+
 	void Initialize()
 	{
 		Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "=== Starting World Initialization ===");
@@ -119,6 +124,7 @@ namespace World
 		}
 
 		Globals::CreateHook(Globals::GetAddress(0xC98310), GameReservationPatch);
+		Globals::CreateHook(Globals::GetAddress(0x2000E70), KickPatch);
 
 		Logging::SafeLog(ELogEvent::Info, ELogType::Athena, "=== World Initialization Completed ===");
 	}
